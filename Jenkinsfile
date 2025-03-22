@@ -99,7 +99,7 @@ pipeline {
 
         stage('Run Frontend Container') {
             steps {
-                sh "docker run -d -p 8080:80 --name ${FRONTEND_CONTAINER} ${FRONTEND_IMAGE}"
+                sh "docker run -d -p 8081:80 --name ${FRONTEND_CONTAINER} ${FRONTEND_IMAGE}"
             }
         }
     }
