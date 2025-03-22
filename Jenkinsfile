@@ -1,9 +1,11 @@
 pipeline {
     agent any
     environment {
-        DOCKER_IMAGE = "yugeshwarangm/docker-app-day5:latest"  // Change this to your registry
-        CONTAINER_NAME = "docker-running-app-day5"
-        REGISTRY_CREDENTIALS = "docker-yugesh"  // Jenkins credentials ID
+        BACKEND_IMAGE = "yugeshwarangm/backend-app1:latest"
+        FRONTEND_IMAGE = "yugeshwarangm/frontend-app1:latest"
+        BACKEND_CONTAINER = "backend-running-app-day5"
+        FRONTEND_CONTAINER = "frontend-running-app-day5"
+        REGISTRY_CREDENTIALS = "docker-yugesh"
     }
 
     stages {
@@ -15,9 +17,19 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build Backend Image') {
             steps {
-                sh 'docker build -t $DOCKER_IMAGE .'
+                dir('backend') {
+                    sh 'docker build -t $BACKEND_IMAGE .'
+                }
+            }
+        }
+
+        stage('Build Frontend Image') {
+            steps {
+                dir('backend/frontend') {
+                    sh 'docker build -t $FRONTEND_IMAGE .'
+                }
             }
         }
 
@@ -29,28 +41,53 @@ pipeline {
             }
         }
 
-        stage('Push to Container Registry') {
+        stage('Push Backend Image') {
             steps {
-                sh 'docker push $DOCKER_IMAGE'
+                sh 'docker push $BACKEND_IMAGE'
             }
         }
 
-        stage('Stop & Remove Existing Container') {
+        stage('Push Frontend Image') {
+            steps {
+                sh 'docker push $FRONTEND_IMAGE'
+            }
+        }
+
+        stage('Stop & Remove Existing Backend Container') {
             steps {
                 script {
                     sh '''
-                    if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
-                        docker stop $CONTAINER_NAME || true
-                        docker rm $CONTAINER_NAME || true
+                    if [ "$(docker ps -aq -f name=$BACKEND_CONTAINER)" ]; then
+                        docker stop $BACKEND_CONTAINER || true
+                        docker rm $BACKEND_CONTAINER || true
                     fi
                     '''
                 }
             }
         }
 
-        stage('Run Docker Container') {
+        stage('Stop & Remove Existing Frontend Container') {
             steps {
-                sh 'docker run -d -p 5001:5000 --name $CONTAINER_NAME $DOCKER_IMAGE'
+                script {
+                    sh '''
+                    if [ "$(docker ps -aq -f name=$FRONTEND_CONTAINER)" ]; then
+                        docker stop $FRONTEND_CONTAINER || true
+                        docker rm $FRONTEND_CONTAINER || true
+                    fi
+                    '''
+                }
+            }
+        }
+
+        stage('Run Backend Container') {
+            steps {
+                sh 'docker run -d -p 5001:5000 --name $BACKEND_CONTAINER $BACKEND_IMAGE'
+            }
+        }
+
+        stage('Run Frontend Container') {
+            steps {
+                sh 'docker run -d -p 8080:80 --name $FRONTEND_CONTAINER $FRONTEND_IMAGE'
             }
         }
     }
