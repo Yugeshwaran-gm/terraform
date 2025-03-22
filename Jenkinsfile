@@ -73,6 +73,40 @@ pipeline {
         }
     }
 
+	stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    sh '''
+                    echo "Applying Kubernetes configurations..."
+                    
+                    # Replace the image in the deployment files (optional)
+                    sed -i "s|IMAGE_PLACEHOLDER_BACKEND|${BACKEND_IMAGE}|" k8s/backend-deployment.yaml
+                    sed -i "s|IMAGE_PLACEHOLDER_FRONTEND|${FRONTEND_IMAGE}|" k8s/frontend-deployment.yaml
+
+                    # Apply Kubernetes resources
+                    kubectl apply -f k8s/backend-deployment.yaml
+                    kubectl apply -f k8s/frontend-deployment.yaml
+                    kubectl apply -f k8s/backend-service.yaml
+                    kubectl apply -f k8s/frontend-service.yaml
+
+                    echo "Deployment completed!"
+                    '''
+                }
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                script {
+                    sh '''
+                    echo "Checking Kubernetes pod status..."
+                    kubectl get pods -o wide
+                    '''
+                }
+            }
+        }
+    }
+
     post {
         success {
             echo "Build, push, and container execution successful!"
